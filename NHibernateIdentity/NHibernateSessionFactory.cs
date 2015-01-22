@@ -45,7 +45,9 @@ namespace WebApplication1
             _sessionFactory = _configuration.BuildSessionFactory();
 
             SchemaExport se = new SchemaExport(_configuration);
-            se.Execute(false, true, false);
+            se.Drop(false, true);
+            se.Create(false, true);
+            //se.Execute(false, true, false);
         }
 
         public static Configuration Configuration
