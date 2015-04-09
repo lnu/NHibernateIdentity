@@ -1,10 +1,11 @@
-using System;
-using Microsoft.Practices.Unity;
-using Microsoft.Practices.Unity.Configuration;
-using WebApplication1.Models;
-using NHibernate.AspNet.Identity;
 using Microsoft.AspNet.Identity;
+using Microsoft.Owin.Security;
+using Microsoft.Practices.Unity;
 using NHibernate;
+using NHibernate.AspNet.Identity;
+using System;
+using System.Web;
+using WebApplication1.Models;
 
 namespace WebApplication1.App_Start
 {
@@ -36,17 +37,20 @@ namespace WebApplication1.App_Start
         /// change the defaults), as Unity allows resolving a concrete type even if it was not previously registered.</remarks>
         public static void RegisterTypes(IUnityContainer container)
         {
-            // NOTE: To load from web.config uncomment the line below. Make sure to add a Microsoft.Practices.Unity.Configuration to the using statements.
-            // container.LoadConfiguration();
-
-            // TODO: Register your types here
-            // container.RegisterType<IProductRepository, ProductRepository>();
-            //var accountInjectionConstructor = new InjectionConstructor( NHibernateSessionFactory.SessionFactory.OpenSession());
-            var x = new InjectionFactory(c => { return new UserStore<ApplicationUser>(NHibernateSessionFactory.SessionFactory.OpenSession()); });
-            var x2 = new InjectionFactory(c => { return new RoleStore<IdentityRole>(NHibernateSessionFactory.SessionFactory.OpenSession()); });
-            //container.RegisterType<ISession>(new PerRequestLifetimeManager(), x);
-            container.RegisterType<IUserStore<ApplicationUser>, UserStore<ApplicationUser>>(new TransientLifetimeManager(), x);
-            container.RegisterType<IRoleStore<IdentityRole>, RoleStore<IdentityRole>>(new TransientLifetimeManager(), x2);
+            // session used by asp.net identity
+            container.RegisterType<ISession>(new PerRequestLifetimeManager(), new InjectionFactory(c =>
+            {
+                return NHibernateSessionFactory.SessionFactory.OpenSession();
+            }));
+            container.RegisterType<IRoleStore<IdentityRole>, RoleStore<IdentityRole>>(new PerRequestLifetimeManager(), new InjectionConstructor(new ResolvedParameter<ISession>()));
+            container.RegisterType<IUserStore<ApplicationUser>, UserStore<ApplicationUser>>(new PerRequestLifetimeManager(), new InjectionConstructor(new ResolvedParameter<ISession>()));
+            container.RegisterType<IAuthenticationManager>(new PerRequestLifetimeManager(), new InjectionFactory(c =>
+            {
+                return System.Web.HttpContext.Current.GetOwinContext().Authentication;
+            }));
+            container.RegisterType<UserManager<ApplicationUser>>(new PerRequestLifetimeManager());
+            //container.RegisterType<EcdtRoleManager>(new PerRequestLifetimeManager());
+            //container.RegisterType<EcdtSignInManager>(new PerRequestLifetimeManager());
         }
     }
 }
